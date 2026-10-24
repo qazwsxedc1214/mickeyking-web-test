@@ -5,8 +5,15 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;',
 const date = new Date();
 document.getElementById('quoteDate').textContent = new Intl.DateTimeFormat('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
 let cart = [];
-try { cart = JSON.parse(sessionStorage.getItem('MICKEYKING_QUOTE_CART') || '[]'); } catch {}
-if (!Array.isArray(cart)) cart=[];
+// 優先從 URL 取得清單，適用於 GitHub Pages、靜態主機及直接開啟本機檔案。
+// 沒有 URL 參數時才嘗試讀取上一頁的 sessionStorage。
+const params = new URLSearchParams(window.location.search);
+if (params.has('items')) {
+  try { cart = JSON.parse(params.get('items')); } catch (_) {}
+} else {
+  try { cart = JSON.parse(sessionStorage.getItem('MICKEYKING_QUOTE_CART') || '[]'); } catch (_) {}
+}
+if (!Array.isArray(cart)) cart = [];
 const productsById = new Map(PRODUCTS.map(p=>[String(p.id),p]));
 let total = 0;
 const specOrder = ['CPU','主機板','顯示卡','記憶體','RAM','SSD','HDD','散熱器','電源供應器','機殼','作業系統','品牌','型號','尺寸','顏色','材質','備註'];

@@ -205,9 +205,12 @@ document.addEventListener('keydown', (e) => {
 $('checkout').onclick = () => {
   const lines = products.filter(p => Number(cart[p.id]) > 0).map(p => ({id:p.id,qty:Number(cart[p.id])}));
   if (!lines.length) { toast('請先加入商品再產生估價單'); return; }
-  try { sessionStorage.setItem('MICKEYKING_QUOTE_CART', JSON.stringify(lines)); }
-  catch (error) { toast('無法暫存估價清單，請檢查瀏覽器設定'); return; }
-  window.location.href = 'quote.html';
+  // URL 同時帶入商品 ID / 數量：避免 file:// 模式或瀏覽器阻擋 sessionStorage 時估價單空白。
+  // 不傳送客戶資訊及前端售價，估價頁只依 products.js 計價。
+  const url = new URL('quote.html', window.location.href);
+  url.searchParams.set('items', JSON.stringify(lines));
+  try { sessionStorage.setItem('MICKEYKING_QUOTE_CART', JSON.stringify(lines)); } catch (_) {}
+  window.location.assign(url.href);
 };
 
 // 桌機下拉選單也可點擊開合（觸控筆電適用）
