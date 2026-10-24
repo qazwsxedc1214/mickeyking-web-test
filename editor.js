@@ -2,7 +2,7 @@
 // 這是獨立的本機編輯器，網站公開頁面不載入此檔。
 const initial = structuredClone(PRODUCTS);
 let items = structuredClone(PRODUCTS);
-const specificationFields = ["CPU", "主機板", "顯示卡", "記憶體", "SSD", "散熱器", "電源供應器", "機殼", "作業系統", "備註"];
+const specificationFields = ["CPU", "主機板", "顯示卡", "記憶體", "RAM", "SSD", "HDD", "散熱器", "電源供應器", "機殼", "作業系統", "品牌", "型號", "尺寸", "顏色", "材質", "備註"];
 const categories = ["電腦配單", "DIY價格零件", "女裝區"];
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,19 +15,21 @@ function render() {
     <label>價格（新台幣）<input type="number" min="0" step="1" data-field="price" value="${esc(p.price)}"></label>
     <label>商品標籤<input data-field="tag" value="${esc(p.tag)}"></label>
     <label>預設圖示 Emoji<input data-field="emoji" value="${esc(p.emoji)}"></label>
-    <label>商品圖片網址<input type="url" data-field="img" value="${esc(p.img)}" placeholder="https://..."></label></div>
-    <div class="spec-editor" ${p.category === '電腦配單' ? '' : 'hidden'}>
-      <h3>電腦配單規格表</h3><p>規格可留白；公開網站只顯示已填寫的項目。</p>
-      <div class="fields">${specificationFields.map(key=>`<label>${esc(key)}<input data-spec-field="${esc(key)}" value="${esc((p.specs||{})[key]||'')}" placeholder="請填入實際型號／容量"></label>`).join('')}</div>
+    <label>商品圖片網址<input type="text" data-field="img" value="${esc(p.img)}" placeholder="images/pc/1.png 或 https://..."></label></div>
+    <div class="spec-editor">
+      <h3>商品規格與參考單價</h3><p>三類商品都可以填寫規格。參考單價非必填，已含於商品售價、不重複加總。</p>
+      <div class="fields">${specificationFields.map(key=>`<label>${esc(key)}<input data-spec-field="${esc(key)}" value="${esc((p.specs||{})[key]||'')}" placeholder="請填入規格或型號"><small>參考單價（可留空）</small><input type="number" min="0" step="1" data-spec-price="${esc(key)}" value="${esc((p.specPrices||{})[key] ?? '')}" placeholder="例如 3500"></label>`).join('')}</div>
     </div></article>`).join('');
 }
-$('items').addEventListener('change', event => {
- if (event.target.matches('[data-field="category"]')) {
-   const row = event.target.closest('[data-index]');
-   row.querySelector('.spec-editor').hidden = event.target.value !== '電腦配單';
- }
-});
 $('items').addEventListener('input', event => {
+ const specPriceEl = event.target.closest('[data-spec-price]');
+ if (specPriceEl) {
+   const i = Number(specPriceEl.closest('[data-index]').dataset.index);
+   items[i].specPrices ||= {};
+   if (specPriceEl.value === '') delete items[i].specPrices[specPriceEl.dataset.specPrice];
+   else items[i].specPrices[specPriceEl.dataset.specPrice] = specPriceEl.value;
+   return;
+ }
  const specEl = event.target.closest('[data-spec-field]');
  if (specEl) {
    const i = Number(specEl.closest('[data-index]').dataset.index);
@@ -54,7 +56,7 @@ function validate() {
         p.id = Number(p.id);
         p.name = String(p.name).trim();
         p.price = Number(p.price);
-        p.img = String(p.img || '').trim();
+        p.img = String(p.img || '').trim().replace(/\\/g, '/');
 
         // 商品 ID 檢查
         if (!Number.isSafeInteger(p.id) || p.id < 1 || ids.has(p.id)) {
@@ -92,6 +94,17 @@ function validate() {
                 if (typeof v !== 'string') {
                     p.specs[k] = String(v ?? '');
                 }
+            }
+        }
+
+        // 可選擇性設定規格參考價格；只接受非負整數
+        if (p.specPrices) {
+            for (const [key, raw] of Object.entries(p.specPrices)) {
+                const amount = Number(raw);
+                if (raw === '' || !Number.isSafeInteger(amount) || amount < 0) {
+                    throw Error(`參考單價不合法：${p.name} / ${key}`);
+                }
+                p.specPrices[key] = amount;
             }
         }
 

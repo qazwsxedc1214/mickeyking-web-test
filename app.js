@@ -57,7 +57,7 @@ function renderProducts() {
         <span class="product-type">${escapeHTML(product.category)}</span>
         <h3>${escapeHTML(product.name)}</h3>
         <div class="price">${money(product.price)}</div>
-        ${product.category === '電腦配單' ? `<button type="button" class="spec-btn" data-spec="${product.id}">查看完整規格表 ↗</button>` : ''}
+        ${product.specs && Object.values(product.specs).some(v=>String(v??'').trim()) ? `<button type="button" class="spec-btn" data-spec="${product.id}">查看規格與價格 ↗</button>` : ''}
         <button type="button" class="add-btn" data-add="${product.id}">＋ 加入購物車</button>
       </div>
     </article>`;
@@ -156,7 +156,7 @@ document.addEventListener('click', (event) => {
   }
 });
 
-const specKeys = ['CPU', '主機板', '顯示卡', '記憶體', 'SSD', '散熱器', '電源供應器', '機殼', '作業系統', '備註'];
+const specKeys = ['CPU','主機板','顯示卡','記憶體','RAM','SSD','HDD','散熱器','電源供應器','機殼','作業系統','品牌','型號','尺寸','顏色','材質','備註'];
 function openSpecs(product, trigger) {
   lastSpecTrigger = trigger;
   $('specTitle').textContent = product.name + '｜規格表';
@@ -165,7 +165,7 @@ function openSpecs(product, trigger) {
   const keys = [...new Set([...specKeys, ...Object.keys(specs)])];
   const rows = keys.filter(key => String(specs[key] ?? '').trim());
   $('specContent').innerHTML = rows.length
-    ? `<div class="spec-table">${rows.map(key => `<div class="spec-row"><div class="spec-label">${escapeHTML(key)}</div><div class="spec-value">${escapeHTML(specs[key])}</div></div>`).join('')}</div>`
+    ? `<div class="spec-table">${rows.map(key => `<div class="spec-row"><div class="spec-label">${escapeHTML(key)}</div><div class="spec-value">${escapeHTML(specs[key])}${product.specPrices?.[key] !== undefined && Number.isSafeInteger(Number(product.specPrices[key])) ? `<small class="spec-unit-price">參考單價：${money(product.specPrices[key])}（已含整機／商品售價）</small>` : ''}</div></div>`).join('')}</div>`
     : '<p class="spec-empty">此配單的詳細規格尚未公布，請聯絡商家確認。</p>';
   $('specOverlay').classList.add('open');
   $('specOverlay').setAttribute('aria-hidden', 'false');
@@ -202,7 +202,13 @@ $('mobileNav').querySelectorAll('a').forEach((link) => link.addEventListener('cl
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { if ($('specOverlay').classList.contains('open')) closeSpecs(); else showCart(false); }
 });
-$('checkout').onclick = () => toast('展示網站未連接金流，無法建立真實訂單');
+$('checkout').onclick = () => {
+  const lines = products.filter(p => Number(cart[p.id]) > 0).map(p => ({id:p.id,qty:Number(cart[p.id])}));
+  if (!lines.length) { toast('請先加入商品再產生估價單'); return; }
+  try { sessionStorage.setItem('MICKEYKING_QUOTE_CART', JSON.stringify(lines)); }
+  catch (error) { toast('無法暫存估價清單，請檢查瀏覽器設定'); return; }
+  window.location.href = 'quote.html';
+};
 
 // 桌機下拉選單也可點擊開合（觸控筆電適用）
 document.querySelectorAll('.desktop-nav .nav-item > button.nav-link').forEach((button) => {

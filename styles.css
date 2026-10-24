@@ -32,3 +32,5 @@
 .spec-bottom strong{font-size:20px}
 .spec-done{border:0;background:var(--brand);color:white;border-radius:9px;padding:12px 24px;font-weight:750}
 @media(max-width:600px){.spec-overlay{padding:10px}.spec-dialog{padding:16px;max-height:94dvh;border-radius:15px}.spec-head h2{font-size:18px}.spec-row{grid-template-columns:95px 1fr;font-size:12px}.spec-label,.spec-value{padding:11px 9px}}
+
+.spec-unit-price{display:block;margin-top:5px;font-size:12px;color:#65758f}
